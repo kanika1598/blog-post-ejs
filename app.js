@@ -1,6 +1,16 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 var _ = require('lodash');
+const mongoose = require('mongoose');
+
+mongoose.connect("mongodb://localhost:27017/blogDB", { useNewUrlParser: true });
+
+const postSchema = new mongoose.Schema({
+    title: String,
+    content: String
+})
+
+const Post = new mongoose.model('Post', postSchema);
 
 const app = express();
 
@@ -14,12 +24,21 @@ const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pelle
 
 const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
 
-const posts = [];
+// const posts = [];
 
 
 app.set('view engine', 'ejs');
 app.get('/', function (req, res) {
-    res.render('home', { startingContent: homeStartingContent, newPosts: posts });
+
+    Post.find({}, function (err, posts) {
+        if (err) {
+            console.log(err);
+        }
+        else {
+            res.render('home', { startingContent: homeStartingContent, newPosts: posts });
+        }
+    })
+
 
 })
 
@@ -36,24 +55,40 @@ app.get('/compose', function (req, res) {
 })
 
 app.post('/compose', function (req, res) {
-    const post = {
+    // const post = {
+    //     title: req.body.postTitle,
+    //     content: req.body.postBody
+    // };
+
+    const post = new Post({
         title: req.body.postTitle,
         content: req.body.postBody
-    };
+    });
 
-    posts.push(post);
+    // posts.push(post);
+
+    post.save();
     res.redirect('/');
 })
 
-app.get('/posts/:postName', function (req, res) {
-    const requestedTitle = _.lowerCase(req.params.postName);
+app.get('/posts/:postID', function (req, res) {
+    const requestedPostID = req.params.postID;
 
-    posts.forEach(function (post) {
-        const storedTitle = _.lowerCase(post.title);
-        if (requestedTitle === storedTitle) {
-            res.render('post', { postTitle: post.title, postContent: post.content });
+    Post.findOne({ _id: requestedPostID }, function (err, post) {
+        if (err) {
+            console.log("No Post Found!");
+        }
+        else {
+            res.render('post', { postTitle: post.title, postContent: post.content })
         }
     })
+
+    // posts.forEach(function (post) {
+    //     const storedIndex = post._id;
+    //     if (requestedTitle === storedTitle) {
+    //         res.render('post', { postTitle: post.title, postContent: post.content });
+    //     }
+    // })
 })
 
 app.listen(3000, function () {
